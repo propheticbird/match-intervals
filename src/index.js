@@ -1,12 +1,19 @@
 const readline = require("readline");
-const { TimeIdentifier, TimeSlot } = require("./model.js");
+const FastPriorityQueue = require("fastpriorityqueue");
+
+const { handleInput } = require("./parser.js");
+const { match } = require("./matcher");
+
 
 function main() {
   openFileStream();
 }
 
-const shifts = [];
-let availabilities = [];
+function createQueue() {
+  //all slots will be ordered by start from date when added to queue
+  const dateComparator = (lhs, rhs) => lhs.from.getTime() < rhs.from.getTime();
+  return new FastPriorityQueue(dateComparator);
+}
 
 function openFileStream() {
   const readlineInterface = readline.createInterface({
@@ -15,65 +22,23 @@ function openFileStream() {
     terminal: false,
   });
 
+  const timeSlots = createQueue();
+
   readlineInterface.on('line', line => {
-    handleInput(line);
+    handleInput(timeSlots, line);
   }).on('close', () => {
-    processAvailability();
+    let matched = match(timeSlots);
+    show(matched);
     process.exit(0);
   });
 }
 
-function handleInput(line) {
-  const slot = parseSlot(line);
-
-  switch (slot.type) {
-    case TimeIdentifier.SHIFT:
-      shifts.push(new TimeSlot(slot.type, slot.id, slot.from, slot.to));
-      break;
-
-    case TimeIdentifier.AVAILABILITY:
-      availabilities.push(new TimeSlot(slot.type, slot.id, slot.from, slot.to));
-      break;
-
-    default:
-      throw new Error('Unknown type of time slot.');
+function show(matched) {
+  for (let availability in matched) {
+    console.log(`Availability with id ${availability} is matched with shifts: `);
+    matched[availability].forEach(s => console.log(s));
+    console.log('');
   }
-}
-
-function parseSlot(line) {
-  const exp = /^(?<type>Shift|Availability) (?<id>[0-9a-zA-Z]+): (?<from>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) - (?<to>\d{4}-\d{2}-\d{2} \d{2}:\d{2})$/;
-  let found = line.match(exp);
-
-  if (found === null) {
-    throw new Error("Time slot string is mailformed.")
-  }
-
-  return found.groups;
-}
-
-function processAvailability() {
-  for (const availability of availabilities) {
-    let intervals = findCommonIntervals(shifts, availability);
-
-    if (intervals.length > 0) {
-      console.log('Shifts that match slot with id ' + availability.id + ':');
-      intervals.forEach(interval => console.log(interval));
-      console.log('');
-    }
-  }
-}
-
-function findCommonIntervals(shifts, availableSlot) {
-  let matched = [];
-
-  for (const shift of shifts) {
-
-    if (shift.from >= availableSlot.from && availableSlot.to >= shift.to) {
-      matched.push(shift.id);
-    }
-  }
-
-  return matched;
 }
 
 if (require.main === module) {
