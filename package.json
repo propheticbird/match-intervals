@@ -4,7 +4,8 @@
   "description": "Programming assignment",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js < input-data.txt"
+    "start": "node src/index.js < input-data.txt",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",

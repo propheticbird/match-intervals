@@ -46,3 +46,4 @@ function matchAvailabilities(availabilities, shift, matched) {
 const isDataOneDayOld = (cur, arr) => (cur.from.getTime() - arr[arr.length - 1].from.getTime()) / (1000 * 3600 * 24) > 1;
 
 module.exports.match = match;
+module.exports = isDataOneDayOld;
